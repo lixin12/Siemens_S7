@@ -281,6 +281,54 @@ static void S7_AnalyzeFloat32Data(char* data,unsigned char index,unsigned char f
 	//	zlg_debug("S7_AnalyzeFloat32 error\r\n,(int)Get_S7_b(index)*2=%d;data[8]=%d\r\n",(int)Get_S7_b(index)*2,data[8]);
 	//}
 }
+typedef union _double {
+  long double f;
+  char  bufF[8];
+} DoubletUnion;
+static void S7_AnalyzeDouble64Data(char* data,unsigned char index,unsigned char func_code)
+{
+	char strval[100] = {0};
+	float tmp = 0;
+	int j = 0;
+	int i = 0;
+	DoubletUnion fu;
+	//if((int)Get_S7_b(index)*4*8 == (u16)((u16)data[23]<<8|data[24]))
+	//{
+		for(j=0 ; j<Get_S7_b(index) ; j++)
+		{
+			if(func_code == S7_T)
+			{
+				fu.bufF[7] = data[28+j*20];
+				fu.bufF[6] = data[29+j*20];
+				fu.bufF[5] = data[33+j*20];
+				fu.bufF[4] = data[34+j*20];
+				fu.bufF[3] = data[38+j*20];
+				fu.bufF[2] = data[39+j*20];
+				fu.bufF[1] = data[43+j*20];
+				fu.bufF[0] = data[44+j*20];
+			}
+			else
+			{
+				fu.bufF[7] = data[25+j*8];
+				fu.bufF[6] = data[25+j*8+1];
+				fu.bufF[5] = data[25+j*8+2];
+				fu.bufF[4] = data[25+j*8+3];
+				fu.bufF[3] = data[25+j*8+4];
+				fu.bufF[2] = data[25+j*8+5];
+				fu.bufF[1] = data[25+j*8+6];
+				fu.bufF[0] = data[25+j*8+7];
+			}				
+			zlg_debug("fu.f=%.12g\r\n",fu.f);
+			sprintf(strval,"%.12g;",(double)(fu.f*Get_S7_ax(index)));
+			strcat(result,strval);
+		}
+		zlg_debug("---%s\r\n",result);
+	//}
+	//else
+	//{
+	//	zlg_debug("S7_AnalyzeFloat32 error\r\n,(int)Get_S7_b(index)*2=%d;data[8]=%d\r\n",(int)Get_S7_b(index)*2,data[8]);
+	//}
+}
 
 static void S7AnalyzeBitData(char* data,unsigned char index,unsigned char func_code)
 {
@@ -376,6 +424,10 @@ unsigned char S7_AnalyzeData(unsigned char* data,unsigned char index)
 			else if(S7_AddrU16U32[index].S7_dataType==_FLOAT32)
 			{
 				S7_AnalyzeFloat32Data(data,index,S7_AddrU16U32[index].type);
+			}
+			else if(S7_AddrU16U32[index].S7_dataType==_DOUBLE64)
+			{
+				S7_AnalyzeDouble64Data(data,index,S7_AddrU16U32[index].type);
 			}
 			return 0;
 		}

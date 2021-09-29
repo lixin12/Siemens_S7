@@ -36,7 +36,7 @@ int current_status = _INIT;
 
 char serverIP[20] = {"10.45.222.80"};
 u32 serverPort = 102; //   Port
-SIEMENS_DEVICESTYPE Siemens_Type = S7_SMART;
+
 
 
 char rev[1536];
@@ -46,7 +46,7 @@ unsigned long sck_mode;
 
 struct sockaddr_in addr;
 
-static void print_S7Data(char* data,int flag,int len)
+void print_S7Data(char* data,int flag,int len)
 {
 	u16 i = 0; 
     char buff[500] = {0};

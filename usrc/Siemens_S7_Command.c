@@ -9,7 +9,7 @@ int U32_CNT = 0;
 int FLOAT_CNT = 0;
 int Data_CNT = 0;
 //typedef enum{R=0x9c,B=0xa0,MR=0x90,LR=0x92,CR=0x91,CM=0xa9,DM=0xa8,FM=0xaf,ZF=0xb0,W=0xb4,TN=0xc2,TS=0xc1,CN=0xc5,CS=0xc4}MC_TYPE;
-extern unsigned char DeviceID ;
+
 extern S7_ADDRU16U32 S7_AddrU16U32[];
 extern S7_ADDR_BIT S7_Addr_Bit[];
 extern S7_ADDR_STRING S7_Addr_String[];
@@ -30,6 +30,11 @@ void Init_U16_U32_FLOATCNT(void)
 			Data_CNT += S7_AddrU16U32[i].b*1;
 		}
 		else if(S7_AddrU16U32[i].S7_dataType==_FLOAT32)
+		{
+			FLOAT_CNT++;
+			Data_CNT += S7_AddrU16U32[i].b*1;
+		}
+		else if(S7_AddrU16U32[i].S7_dataType==_DOUBLE64)
 		{
 			FLOAT_CNT++;
 			Data_CNT += S7_AddrU16U32[i].b*1;
@@ -117,7 +122,7 @@ u8 buf[50] = {
 	0x00, 0x00, 0x00 //閺佺増宓佹担搴濈秴
 };
 u16 sysbyte = 0;
-u8* create_S7_Type(u8 SlaveID,u8 FuncCode,int highstartAddr,int lowstartAddr,u16 readLth)
+u8* create_S7_Type(u8 FuncCode,int highstartAddr,int lowstartAddr,u16 readLth)
 {
 	union
 	{
@@ -130,6 +135,7 @@ u8* create_S7_Type(u8 SlaveID,u8 FuncCode,int highstartAddr,int lowstartAddr,u16
 	buf[27] =  FuncCode;
 	if(FuncCode == S7_I || FuncCode == S7_Q || FuncCode == S7_M)
 	{
+		buf[22] = 0x02;
 		iv.v = 0;
 		buf[25] = iv.b[1];
 		buf[26] = iv.b[0];
@@ -139,6 +145,7 @@ u8* create_S7_Type(u8 SlaveID,u8 FuncCode,int highstartAddr,int lowstartAddr,u16
 	}
 	else if(FuncCode == S7_DB)
 	{
+		buf[22] = 0x02;
 		iv.v = highstartAddr;
 		buf[25] = iv.b[1]; //閺
 		buf[26] = iv.b[0];
@@ -186,16 +193,23 @@ static char* Get_S7_U16_U32_FLOAT32CMDSTR(int i)
 	if((S7_AddrU16U32[i].S7_dataType == _U16) || (S7_AddrU16U32[i].S7_dataType == _INT16))
 	{
 		if(S7_AddrU16U32[i].type == S7_T)
-			return create_S7_Type(DeviceID,S7_AddrU16U32[i].type,S7_AddrU16U32[i].high_addr,S7_AddrU16U32[i].low_addr,(u16)(S7_AddrU16U32[i].b));
+			return create_S7_Type(S7_AddrU16U32[i].type,S7_AddrU16U32[i].high_addr,S7_AddrU16U32[i].low_addr,(u16)(S7_AddrU16U32[i].b));
 		else
-			return create_S7_Type(DeviceID,S7_AddrU16U32[i].type,S7_AddrU16U32[i].high_addr,S7_AddrU16U32[i].low_addr,(u16)(2*S7_AddrU16U32[i].b));
+			return create_S7_Type(S7_AddrU16U32[i].type,S7_AddrU16U32[i].high_addr,S7_AddrU16U32[i].low_addr,(u16)(2*S7_AddrU16U32[i].b));
 	}
 	else if((S7_AddrU16U32[i].S7_dataType == _U32) || (S7_AddrU16U32[i].S7_dataType == _INT32) ||  (S7_AddrU16U32[i].S7_dataType == _FLOAT32))
 	{
 		if(S7_AddrU16U32[i].type == S7_T)
-			return create_S7_Type(DeviceID,S7_AddrU16U32[i].type,S7_AddrU16U32[i].high_addr,S7_AddrU16U32[i].low_addr,(u16)(2*S7_AddrU16U32[i].b));
+			return create_S7_Type(S7_AddrU16U32[i].type,S7_AddrU16U32[i].high_addr,S7_AddrU16U32[i].low_addr,(u16)(2*S7_AddrU16U32[i].b));
 		else
-			return create_S7_Type(DeviceID,S7_AddrU16U32[i].type,S7_AddrU16U32[i].high_addr,S7_AddrU16U32[i].low_addr,(u16)(4*S7_AddrU16U32[i].b));
+			return create_S7_Type(S7_AddrU16U32[i].type,S7_AddrU16U32[i].high_addr,S7_AddrU16U32[i].low_addr,(u16)(4*S7_AddrU16U32[i].b));
+	}
+	else if(S7_AddrU16U32[i].S7_dataType == _DOUBLE64)
+	{
+		if(S7_AddrU16U32[i].type == S7_T)
+			return create_S7_Type(S7_AddrU16U32[i].type,S7_AddrU16U32[i].high_addr,S7_AddrU16U32[i].low_addr,(u16)(4*S7_AddrU16U32[i].b));
+		else
+			return create_S7_Type(S7_AddrU16U32[i].type,S7_AddrU16U32[i].high_addr,S7_AddrU16U32[i].low_addr,(u16)(8*S7_AddrU16U32[i].b));
 	}
 	return "ERROR";
 }
@@ -204,9 +218,9 @@ static char* Get_S7_bITCMDSTR(int i)
 	if(i<GetS7_BIT_CNT())
 	{
 		if(S7_Addr_Bit[i].type == S7_T)
-			return create_S7_Type(DeviceID,S7_Addr_Bit[i].type,S7_Addr_Bit[i].high_addr,S7_Addr_Bit[i].low_addr ,1);
+			return create_S7_Type(S7_Addr_Bit[i].type,S7_Addr_Bit[i].high_addr,S7_Addr_Bit[i].low_addr ,1);
 		else
-			return create_S7_Type(DeviceID,S7_Addr_Bit[i].type,S7_Addr_Bit[i].high_addr,S7_Addr_Bit[i].low_addr ,S7_Bit_Read_Len(i));
+			return create_S7_Type(S7_Addr_Bit[i].type,S7_Addr_Bit[i].high_addr,S7_Addr_Bit[i].low_addr ,S7_Bit_Read_Len(i));
 	}
 	return "ERROR";
 }
@@ -217,10 +231,10 @@ static char* Get_S7_STRCMDSTR(int i)
 		if(S7_Addr_String[i].type == S7_T)
 		{
 			zlg_debug("string read length=%d\r\n",S7_String_Read_Len(i));
-			return create_S7_Type(DeviceID,S7_Addr_String[i].type,S7_Addr_String[i].high_addr,S7_Addr_String[i].low_addr,S7_String_Read_Len(i));
+			return create_S7_Type(S7_Addr_String[i].type,S7_Addr_String[i].high_addr,S7_Addr_String[i].low_addr,S7_String_Read_Len(i));
 		}
 		else
-			return create_S7_Type(DeviceID,S7_Addr_String[i].type,S7_Addr_String[i].high_addr,S7_Addr_String[i].low_addr,S7_Addr_String[i].length);
+			return create_S7_Type(S7_Addr_String[i].type,S7_Addr_String[i].high_addr,S7_Addr_String[i].low_addr,S7_Addr_String[i].length);
 	}
 	return "ERROR";
 }
@@ -261,14 +275,6 @@ char Get_S7_CMD_FUNCode(int i)
 		}
 	}
 	return 0;
-}
-unsigned char GetDeviceID(void)
-{
-	return DeviceID;
-}
-void SetDeviceID(unsigned char id)
-{
-	DeviceID = id;
 }
 int Get_SendDataCNT(void)
 {
